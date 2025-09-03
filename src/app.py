@@ -1,6 +1,7 @@
 # src/app.py
+import datetime
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import ttk, messagebox
 from typing import Dict, Any
 from storage import Storage
 from search import matches, all_field_labels, sort_entries
@@ -43,8 +44,8 @@ class PixieVaultApp:
         center = ttk.Frame(self.root)
         center.pack(side="top", fill="both", expand=True, padx=10, pady=6)
 
-        self.tree = ttk.Treeview(center, columns=("protocol","website","username"), show="headings", height=18)
-        for col, label, width in [("protocol","Protocol",120), ("website","Website",260), ("username","UN",160)]:
+        self.tree = ttk.Treeview(center, columns=("id","created","last_access","name","protocol","website","username"), show="headings", height=18)
+        for col, label, width in [("id","ID",80), ("created","Created",120), ("last_access","Last Access",120), ("name","Name",140), ("protocol","Protocol",80), ("website","Website",180), ("username","UN",120)]:
             self.tree.heading(col, text=label)
             self.tree.column(col, width=width, anchor="w")
         self.tree.pack(side="left", fill="both", expand=True)
@@ -87,7 +88,18 @@ class PixieVaultApp:
 
         self.tree.delete(*self.tree.get_children())
         for e in entries:
-            self.tree.insert("", "end", iid=e["id"], values=(e.get("protocol",""), e.get("website",""), e.get("username","")))
+            created_short = datetime.datetime.fromtimestamp(e.get('created_at', 0)).strftime('%m/%d/%y') if e.get('created_at') else 'N/A'
+            last_access_short = datetime.datetime.fromtimestamp(e.get('last_access_at', 0)).strftime('%m/%d/%y') if e.get('last_access_at') else 'Never'
+            
+            self.tree.insert("", "end", iid=e["id"], values=(
+                e.get("id","")[:8] + "...",  # Truncated ID
+                created_short,
+                last_access_short,
+                e.get("name",""),
+                e.get("protocol",""),
+                e.get("website",""),
+                e.get("username","")
+            ))
         self.detail_text.delete("1.0", "end")
 
     def _on_select(self, _evt=None):
@@ -101,7 +113,15 @@ class PixieVaultApp:
 
     def _show_details(self, e: Dict[str,Any]):
         self.detail_text.delete("1.0", "end")
+        
+        # Format timestamps
+        created_date = datetime.datetime.fromtimestamp(e.get('created_at', 0)).strftime('%Y-%m-%d %H:%M:%S') if e.get('created_at') else 'N/A'
+        last_access = datetime.datetime.fromtimestamp(e.get('last_access_at', 0)).strftime('%Y-%m-%d %H:%M:%S') if e.get('last_access_at') else 'Never'
+        
         base = (
+            f"ID: {e.get('id','')}\n"
+            f"Created: {created_date}\n"
+            f"Last Accessed: {last_access}\n"
             f"Name: {e.get('name','')}\n"
             f"Protocol: {e.get('protocol','')}\n"
             f"Website: {e.get('website','')}\n"
