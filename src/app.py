@@ -2,7 +2,9 @@
 import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
+import os
+from PIL import Image, ImageTk
 from storage import Storage
 from search import matches, all_field_labels, sort_entries
 
@@ -14,16 +16,20 @@ class PixieVaultApp:
         self.store = Storage()
         
         # Touch-first sizing
-        default_font = ("DejaVu Sans", 12)
-        self.root.option_add("*Font", default_font)
-        self.root.tk.call("tk", "scaling", 1.3)  # scale up ~30%
+        self.root.tk.call('tk', 'scaling', 1.3)
+        self.root.option_add('*Font', '{DejaVu Sans} 14')
         
         # Light theme styling
         self._setup_theme()
-
+        
+        # Build UI first
         self._build_ui()
-        self._refresh_field_labels()
+
         self._load_entries()
+        self._refresh_field_labels()
+        
+        # Cleanup video on window close
+        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
     
     def _setup_theme(self):
         style = ttk.Style(self.root)
@@ -79,9 +85,13 @@ class PixieVaultApp:
         self.show_passwords = tk.BooleanVar(value=False)
         ttk.Checkbutton(pwd_frame, text="Show Passwords", variable=self.show_passwords, 
                        command=self._refresh_detail_display).pack(side="left")
+        ttk.Label(detail, text="Entry Details", font=("DejaVu Sans", 12, "bold")).pack(anchor="w", pady=(0,6))
         
-        self.detail_text = tk.Text(detail, height=12, width=40)
-        self.detail_text.pack(fill="y")
+        self.detail_text = tk.Text(detail, height=12, wrap="word", font=("DejaVu Sans", 10))
+        self.detail_text.pack(fill="both", expand=True)
+        
+        # Bottom image area
+        self._add_pixie_image(detail)
 
         # Status bar
         status_bar = ttk.Frame(self.root)
@@ -166,6 +176,7 @@ class PixieVaultApp:
             return
             
         e = self.current_entry
+        self.detail_text.config(state="normal")
         self.detail_text.delete("1.0", "end")
         
         # Format timestamps
@@ -186,30 +197,43 @@ class PixieVaultApp:
             f"Created: {created_date}\n"
             f"Last Accessed: {last_access}\n"
         )
+        self.detail_text.config(state="normal")
         self.detail_text.insert("end", base)
         if e.get("custom"):
             self.detail_text.insert("end", "\nCustom Fields:\n")
             for k, v in e["custom"].items():
                 self.detail_text.insert("end", f"  - {k}: {v}\n")
+        self.detail_text.config(state="disabled")
 
     # --- Dialogs ---
     def _add_entry_dialog(self):
         base, custom = self._entry_form_dialog("Add Entry")
-        if base is None: return
+        print(f"DEBUG: Dialog returned base={base}, custom={custom}")
+        if base is None: 
+            print("DEBUG: Dialog was cancelled")
+            return
         
         # Validation
         if not base.get("name", "").strip():
+            print("DEBUG: Name validation failed")
             messagebox.showerror("Validation Error", "Name is required.")
             return
-        if not base.get("password", "").strip():
-            messagebox.showerror("Validation Error", "Password is required.")
-            return
-        if len(base.get("password", "")) < 3:
-            messagebox.showwarning("Validation Warning", "Password should be at least 3 characters long.")
         
+        # Password confirmation validation
+        password = base.get("password", "")
+        password_confirm = base.get("password_confirm", "")
+        print(f"DEBUG: password='{password}', confirm='{password_confirm}'")
+        if password and password != password_confirm:
+            print("DEBUG: Password confirmation failed")
+            messagebox.showerror("Validation Error", "Passwords do not match.")
+            return
+        
+        print("DEBUG: About to save entry")
         self.store.add_entry(base, custom)
+        print("DEBUG: Entry saved, refreshing UI")
         self._refresh_field_labels()
         self._load_entries()
+        print("DEBUG: Showing success message")
         messagebox.showinfo("Success", "Entry saved ✨")
 
     def _edit_entry_dialog(self):
@@ -242,8 +266,15 @@ class PixieVaultApp:
         # Simple synchronous dialog with dynamic custom fields
         dlg = tk.Toplevel(self.root)
         dlg.title(title)
-        dlg.transient(self.root)
-        dlg.grab_set()
+        # Don't use transient or grab_set - they prevent maximize/minimize
+        
+        # Center the dialog and enable maximize
+        dlg.geometry("400x450")
+        dlg.resizable(True, True)
+        dlg.focus_set()
+        
+        # Result storage
+        result = {"base": None, "custom": None}
 
         vals = {
             "name": (entry or {}).get("name",""),
@@ -256,31 +287,30 @@ class PixieVaultApp:
         row = 0
         widgets: Dict[str, tk.Entry] = {}
         # Password visibility toggle for dialog
-        self.dialog_show_password = tk.BooleanVar(value=False)
+        dialog_show_password = tk.BooleanVar(value=False)
         
         for label_key, label_txt in [("name","Name"),("protocol","Protocol"),("website","Website"),("username","UN"),("password","Password"),("notes","Notes")]:
             ttk.Label(dlg, text=label_txt).grid(row=row, column=0, sticky="e", padx=6, pady=4)
             
             if label_key == "password":
-                # Password field with toggle
-                pwd_frame = ttk.Frame(dlg)
-                pwd_frame.grid(row=row, column=1, padx=6, pady=4, sticky="w")
+                # Password field - no obfuscation
+                ent = ttk.Entry(dlg, width=20)
+                ent.grid(row=row, column=1, padx=6, pady=4, sticky="w")
+                ent.insert(0, vals[label_key])
+                widgets[label_key] = ent
+                row += 1
                 
-                ent = ttk.Entry(pwd_frame, width=30, show="" if self.dialog_show_password.get() else "*")
-                ent.pack(side="left")
-                
-                def toggle_password_visibility():
-                    current_text = ent.get()
-                    ent.configure(show="" if self.dialog_show_password.get() else "*")
-                
-                ttk.Checkbutton(pwd_frame, text="Show", variable=self.dialog_show_password, 
-                               command=toggle_password_visibility).pack(side="left", padx=5)
+                # Password confirmation field - no obfuscation
+                ttk.Label(dlg, text="Confirm").grid(row=row, column=0, sticky="e", padx=6, pady=4)
+                confirm_ent = ttk.Entry(dlg, width=20)
+                confirm_ent.grid(row=row, column=1, padx=6, pady=4, sticky="w")
+                widgets["password_confirm"] = confirm_ent
             else:
-                ent = ttk.Entry(dlg, width=40)
-                ent.grid(row=row, column=1, padx=6, pady=4)
+                ent = ttk.Entry(dlg, width=20)
+                ent.grid(row=row, column=1, padx=6, pady=4, sticky="w")
+                ent.insert(0, vals[label_key])
+                widgets[label_key] = ent
             
-            ent.insert(0, vals[label_key])
-            widgets[label_key] = ent
             row += 1
 
         # Custom fields block
@@ -327,25 +357,38 @@ class PixieVaultApp:
 
         # Save/Cancel
         btns = ttk.Frame(dlg); btns.grid(row=row, column=0, columnspan=2, pady=8)
-        out = {"ok": False}
-        def on_ok():
-            out["ok"] = True
+        
+        def on_save():
+            # Collect data before destroying dialog
+            base = {}
+            for k, w in widgets.items():
+                if k != "password_confirm":
+                    base[k] = w.get().strip()
+                    
+            # Add password_confirm for validation but don't save it
+            base["password_confirm"] = widgets.get("password_confirm", tk.Entry()).get()
+            
+            custom: Dict[str,Any] = {}
+            for k_ent, v_ent, _ in custom_rows:
+                k = k_ent.get().strip()
+                v = v_ent.get().strip()
+                if k:
+                    custom[k] = v
+            result["base"] = base
+            result["custom"] = custom
             dlg.destroy()
-        ttk.Button(btns, text="Save", command=on_ok).pack(side="left", padx=6)
-        ttk.Button(btns, text="Cancel", command=dlg.destroy).pack(side="left", padx=6)
+            
+        def on_cancel():
+            result["base"] = None
+            result["custom"] = None
+            dlg.destroy()
+            
+        ttk.Button(btns, text="Save", command=on_save).pack(side="left", padx=6)
+        ttk.Button(btns, text="Cancel", command=on_cancel).pack(side="left", padx=6)
 
         dlg.wait_window(dlg)
-        if not out["ok"]:
-            return (None, None)
+        return result["base"], result["custom"]
 
-        base = {k: w.get().strip() for k, w in widgets.items()}
-        custom: Dict[str,Any] = {}
-        for k_ent, v_ent, _ in custom_rows:
-            k = k_ent.get().strip()
-            v = v_ent.get().strip()
-            if k:
-                custom[k] = v
-        return base, custom
 
     def _delete_selected(self):
         sel = self.tree.selection()
@@ -354,6 +397,40 @@ class PixieVaultApp:
             self.store.delete_entry(sel[0])
             self._refresh_field_labels()
             self._load_entries()
+    
+
+    def _add_pixie_image(self, parent):
+        """Add pixie image to bottom of detail panel"""
+        try:
+            # Image frame at bottom
+            img_frame = ttk.Frame(parent, height=180)
+            img_frame.pack(side="bottom", fill="x", pady=(10, 0))
+            img_frame.pack_propagate(False)
+            
+            # Load and resize image
+            img_path = os.path.join(os.path.dirname(__file__), "..", "media", "pixie-alices_pet.png")
+            if os.path.exists(img_path):
+                image = Image.open(img_path)
+                # Resize to fit in bottom area (max height 160px)
+                image.thumbnail((500, 160), Image.Resampling.LANCZOS)
+                self.pixie_photo = ImageTk.PhotoImage(image)
+                
+                # Display image
+                img_label = ttk.Label(img_frame, image=self.pixie_photo)
+                img_label.pack(expand=True)
+            else:
+                # Fallback if image not found
+                ttk.Label(img_frame, text="🧚‍♀️ Pixie image not found", 
+                         font=("DejaVu Sans", 10)).pack(expand=True)
+                
+        except Exception as e:
+            # Fallback for any image loading errors
+            ttk.Label(parent, text=f"🧚‍♀️ Image error: {e}", 
+                     font=("DejaVu Sans", 8)).pack(side="bottom", pady=5)
+
+    def _on_closing(self):
+        """Clean up before closing"""
+        self.root.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
