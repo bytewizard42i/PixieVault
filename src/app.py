@@ -56,9 +56,9 @@ class PixieVaultApp:
 
         # Center: Tree list + details
         center = ttk.Frame(self.root)
-        center.pack(side="top", fill="both", expand=True, padx=10, pady=6)
+        center.pack(side="top", fill="x", padx=10, pady=6)
 
-        self.tree = ttk.Treeview(center, columns=("name","protocol","website","username","id","created","last_access"), show="headings", height=18)
+        self.tree = ttk.Treeview(center, columns=("name","protocol","website","username","id","created","last_access"), show="headings", height=12)
         for col, label, width in [("name","Name",140), ("protocol","Protocol",80), ("website","Website",180), ("username","UN",120), ("id","ID",80), ("created","Created",120), ("last_access","Last Access",120)]:
             self.tree.heading(col, text=label)
             self.tree.column(col, width=width, anchor="w")
@@ -80,7 +80,7 @@ class PixieVaultApp:
         ttk.Checkbutton(pwd_frame, text="Show Passwords", variable=self.show_passwords, 
                        command=self._refresh_detail_display).pack(side="left")
         
-        self.detail_text = tk.Text(detail, height=20, width=40)
+        self.detail_text = tk.Text(detail, height=12, width=40)
         self.detail_text.pack(fill="y")
 
         # Status bar
