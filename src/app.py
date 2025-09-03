@@ -18,29 +18,18 @@ class PixieVaultApp:
         self.root.option_add("*Font", default_font)
         self.root.tk.call("tk", "scaling", 1.3)  # scale up ~30%
         
-        # Dark theme styling
-        self._setup_dark_theme()
+        # Light theme styling
+        self._setup_theme()
 
         self._build_ui()
         self._refresh_field_labels()
         self._load_entries()
     
-    def _setup_dark_theme(self):
+    def _setup_theme(self):
         style = ttk.Style(self.root)
-        style.theme_use('clam')
         
-        # Dark palette
-        style.configure(".", background="#121417", foreground="#E7E7E7")
-        style.configure("TEntry", fieldbackground="#1A1D21", foreground="#E7E7E7")
-        style.configure("TCombobox", fieldbackground="#1A1D21", foreground="#E7E7E7")
-        style.configure("Treeview", background="#0F1215", fieldbackground="#0F1215", 
-                       foreground="#E7E7E7", rowheight=34)
-        style.map("Treeview", background=[("selected","#213246")])
-        style.configure("TButton", background="#213246", foreground="#E7E7E7")
-        style.map("TButton", background=[("active", "#2A4A5C")])
-        
-        # Configure root background
-        self.root.configure(bg="#121417")
+        # Keep default light theme but with touch-friendly row height
+        style.configure("Treeview", rowheight=34)
 
     # --- UI ---
     def _build_ui(self):
