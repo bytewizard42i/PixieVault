@@ -44,8 +44,8 @@ class PixieVaultApp:
         center = ttk.Frame(self.root)
         center.pack(side="top", fill="both", expand=True, padx=10, pady=6)
 
-        self.tree = ttk.Treeview(center, columns=("id","created","last_access","name","protocol","website","username"), show="headings", height=18)
-        for col, label, width in [("id","ID",80), ("created","Created",120), ("last_access","Last Access",120), ("name","Name",140), ("protocol","Protocol",80), ("website","Website",180), ("username","UN",120)]:
+        self.tree = ttk.Treeview(center, columns=("name","protocol","website","username","id","created","last_access"), show="headings", height=18)
+        for col, label, width in [("name","Name",140), ("protocol","Protocol",80), ("website","Website",180), ("username","UN",120), ("id","ID",80), ("created","Created",120), ("last_access","Last Access",120)]:
             self.tree.heading(col, text=label)
             self.tree.column(col, width=width, anchor="w")
         self.tree.pack(side="left", fill="both", expand=True)
@@ -92,13 +92,13 @@ class PixieVaultApp:
             last_access_short = datetime.datetime.fromtimestamp(e.get('last_access_at', 0)).strftime('%m/%d/%y') if e.get('last_access_at') else 'Never'
             
             self.tree.insert("", "end", iid=e["id"], values=(
-                e.get("id","")[:8] + "...",  # Truncated ID
-                created_short,
-                last_access_short,
                 e.get("name",""),
                 e.get("protocol",""),
                 e.get("website",""),
-                e.get("username","")
+                e.get("username",""),
+                e.get("id","")[:8] + "...",  # Truncated ID
+                created_short,
+                last_access_short
             ))
         self.detail_text.delete("1.0", "end")
 
@@ -119,15 +119,15 @@ class PixieVaultApp:
         last_access = datetime.datetime.fromtimestamp(e.get('last_access_at', 0)).strftime('%Y-%m-%d %H:%M:%S') if e.get('last_access_at') else 'Never'
         
         base = (
-            f"ID: {e.get('id','')}\n"
-            f"Created: {created_date}\n"
-            f"Last Accessed: {last_access}\n"
             f"Name: {e.get('name','')}\n"
             f"Protocol: {e.get('protocol','')}\n"
             f"Website: {e.get('website','')}\n"
             f"Username: {e.get('username','')}\n"
             f"Password: {e.get('password','')}\n"
             f"Notes: {e.get('notes','')}\n"
+            f"ID: {e.get('id','')}\n"
+            f"Created: {created_date}\n"
+            f"Last Accessed: {last_access}\n"
         )
         self.detail_text.insert("end", base)
         if e.get("custom"):
