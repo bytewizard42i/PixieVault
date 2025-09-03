@@ -58,6 +58,14 @@ class PixieVaultApp:
         # Right: detail panel
         detail = ttk.Frame(center, width=320)
         detail.pack(side="left", fill="y", padx=10)
+        
+        # Password visibility toggle
+        pwd_frame = ttk.Frame(detail)
+        pwd_frame.pack(fill="x", pady=(0, 5))
+        self.show_passwords = tk.BooleanVar(value=False)
+        ttk.Checkbutton(pwd_frame, text="Show Passwords", variable=self.show_passwords, 
+                       command=self._refresh_detail_display).pack(side="left")
+        
         self.detail_text = tk.Text(detail, height=20, width=40)
         self.detail_text.pack(fill="y")
 
@@ -112,18 +120,29 @@ class PixieVaultApp:
         self._show_details(entry)
 
     def _show_details(self, e: Dict[str,Any]):
+        self.current_entry = e  # Store for refresh
+        self._refresh_detail_display()
+    
+    def _refresh_detail_display(self):
+        if not hasattr(self, 'current_entry') or not self.current_entry:
+            return
+            
+        e = self.current_entry
         self.detail_text.delete("1.0", "end")
         
         # Format timestamps
         created_date = datetime.datetime.fromtimestamp(e.get('created_at', 0)).strftime('%Y-%m-%d %H:%M:%S') if e.get('created_at') else 'N/A'
         last_access = datetime.datetime.fromtimestamp(e.get('last_access_at', 0)).strftime('%Y-%m-%d %H:%M:%S') if e.get('last_access_at') else 'Never'
         
+        # Show or hide password based on toggle
+        password_display = e.get('password','') if self.show_passwords.get() else '•' * len(e.get('password',''))
+        
         base = (
             f"Name: {e.get('name','')}\n"
             f"Protocol: {e.get('protocol','')}\n"
             f"Website: {e.get('website','')}\n"
             f"Username: {e.get('username','')}\n"
-            f"Password: {e.get('password','')}\n"
+            f"Password: {password_display}\n"
             f"Notes: {e.get('notes','')}\n"
             f"ID: {e.get('id','')}\n"
             f"Created: {created_date}\n"
@@ -174,10 +193,30 @@ class PixieVaultApp:
         }
         row = 0
         widgets: Dict[str, tk.Entry] = {}
+        # Password visibility toggle for dialog
+        self.dialog_show_password = tk.BooleanVar(value=False)
+        
         for label_key, label_txt in [("name","Name"),("protocol","Protocol"),("website","Website"),("username","UN"),("password","Password"),("notes","Notes")]:
             ttk.Label(dlg, text=label_txt).grid(row=row, column=0, sticky="e", padx=6, pady=4)
-            ent = ttk.Entry(dlg, width=40, show="*" if label_key=="password" else "")
-            ent.grid(row=row, column=1, padx=6, pady=4)
+            
+            if label_key == "password":
+                # Password field with toggle
+                pwd_frame = ttk.Frame(dlg)
+                pwd_frame.grid(row=row, column=1, padx=6, pady=4, sticky="w")
+                
+                ent = ttk.Entry(pwd_frame, width=30, show="" if self.dialog_show_password.get() else "*")
+                ent.pack(side="left")
+                
+                def toggle_password_visibility():
+                    current_text = ent.get()
+                    ent.configure(show="" if self.dialog_show_password.get() else "*")
+                
+                ttk.Checkbutton(pwd_frame, text="Show", variable=self.dialog_show_password, 
+                               command=toggle_password_visibility).pack(side="left", padx=5)
+            else:
+                ent = ttk.Entry(dlg, width=40)
+                ent.grid(row=row, column=1, padx=6, pady=4)
+            
             ent.insert(0, vals[label_key])
             widgets[label_key] = ent
             row += 1
