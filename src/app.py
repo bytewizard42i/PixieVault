@@ -83,16 +83,7 @@ class PixieVaultApp:
         self.detail_text = tk.Text(detail, height=20, width=40)
         self.detail_text.pack(fill="y")
 
-        # Bottom: actions (pack first so they appear at bottom)
-        bottom = ttk.Frame(self.root)
-        bottom.pack(side="bottom", fill="x", padx=10, pady=8)
-
-        ttk.Button(bottom, text="Add Entry", command=self._add_entry_dialog).pack(side="left", padx=5)
-        ttk.Button(bottom, text="Edit Entry", command=self._edit_entry_dialog).pack(side="left", padx=5)
-        ttk.Button(bottom, text="Delete", command=self._delete_selected).pack(side="left", padx=5)
-        ttk.Button(bottom, text="Refresh", command=self._load_entries).pack(side="left", padx=5)
-
-        # Status bar (pack after buttons so it appears above them)
+        # Status bar
         status_bar = ttk.Frame(self.root)
         status_bar.pack(side="bottom", fill="x", padx=10, pady=2)
         
@@ -101,6 +92,15 @@ class PixieVaultApp:
         
         self.status_right = ttk.Label(status_bar, text="")
         self.status_right.pack(side="right")
+
+        # Bottom: actions (pack last so they appear at very bottom)
+        bottom = ttk.Frame(self.root)
+        bottom.pack(side="bottom", fill="x", padx=10, pady=8)
+
+        ttk.Button(bottom, text="Add Entry", command=self._add_entry_dialog).pack(side="left", padx=5)
+        ttk.Button(bottom, text="Edit Entry", command=self._edit_entry_dialog).pack(side="left", padx=5)
+        ttk.Button(bottom, text="Delete", command=self._delete_selected).pack(side="left", padx=5)
+        ttk.Button(bottom, text="Refresh", command=self._load_entries).pack(side="left", padx=5)
 
     def _refresh_field_labels(self):
         labels = ["Any"] + all_field_labels(self.store.all_entries())
