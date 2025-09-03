@@ -9,13 +9,38 @@ from search import matches, all_field_labels, sort_entries
 class PixieVaultApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("Pixie Vault")
+        self.root.title("✨ Pixie Vault")
         self.root.geometry("1024x640")
         self.store = Storage()
+        
+        # Touch-first sizing
+        default_font = ("DejaVu Sans", 12)
+        self.root.option_add("*Font", default_font)
+        self.root.tk.call("tk", "scaling", 1.3)  # scale up ~30%
+        
+        # Dark theme styling
+        self._setup_dark_theme()
 
         self._build_ui()
         self._refresh_field_labels()
         self._load_entries()
+    
+    def _setup_dark_theme(self):
+        style = ttk.Style(self.root)
+        style.theme_use('clam')
+        
+        # Dark palette
+        style.configure(".", background="#121417", foreground="#E7E7E7")
+        style.configure("TEntry", fieldbackground="#1A1D21", foreground="#E7E7E7")
+        style.configure("TCombobox", fieldbackground="#1A1D21", foreground="#E7E7E7")
+        style.configure("Treeview", background="#0F1215", fieldbackground="#0F1215", 
+                       foreground="#E7E7E7", rowheight=34)
+        style.map("Treeview", background=[("selected","#213246")])
+        style.configure("TButton", background="#213246", foreground="#E7E7E7")
+        style.map("TButton", background=[("active", "#2A4A5C")])
+        
+        # Configure root background
+        self.root.configure(bg="#121417")
 
     # --- UI ---
     def _build_ui(self):
@@ -69,6 +94,16 @@ class PixieVaultApp:
         self.detail_text = tk.Text(detail, height=20, width=40)
         self.detail_text.pack(fill="y")
 
+        # Status bar
+        status_bar = ttk.Frame(self.root)
+        status_bar.pack(side="bottom", fill="x", padx=10, pady=2)
+        
+        self.status_left = ttk.Label(status_bar, text="0 entries")
+        self.status_left.pack(side="left")
+        
+        self.status_right = ttk.Label(status_bar, text="")
+        self.status_right.pack(side="right")
+        
         # Bottom: actions
         bottom = ttk.Frame(self.root)
         bottom.pack(side="bottom", fill="x", padx=10, pady=8)
@@ -95,6 +130,13 @@ class PixieVaultApp:
         entries = sort_entries(entries, sort_mode)
 
         self.tree.delete(*self.tree.get_children())
+        if not entries:
+            # Empty state message
+            self.detail_text.delete("1.0", "end")
+            self.detail_text.insert("end", "No matches found ✨ — try 'Any' field or clear filters.")
+            self._update_status_bar(0, term, field)
+            return
+            
         for e in entries:
             created_short = datetime.datetime.fromtimestamp(e.get('created_at', 0)).strftime('%m/%d/%y') if e.get('created_at') else 'N/A'
             last_access_short = datetime.datetime.fromtimestamp(e.get('last_access_at', 0)).strftime('%m/%d/%y') if e.get('last_access_at') else 'Never'
@@ -109,6 +151,20 @@ class PixieVaultApp:
                 last_access_short
             ))
         self.detail_text.delete("1.0", "end")
+        self._update_status_bar(len(entries), term, field)
+    
+    def _update_status_bar(self, count: int, search_term: str = "", field_filter: str = "Any"):
+        # Left: entry count and filter status
+        status_text = f"{count} entries"
+        if search_term:
+            status_text += f" • searching '{search_term}'"
+        if field_filter != "Any":
+            status_text += f" in {field_filter}"
+        self.status_left.config(text=status_text)
+        
+        # Right: current time
+        current_time = datetime.datetime.now().strftime("%H:%M")
+        self.status_right.config(text=current_time)
 
     def _on_select(self, _evt=None):
         sel = self.tree.selection()
@@ -158,9 +214,21 @@ class PixieVaultApp:
     def _add_entry_dialog(self):
         base, custom = self._entry_form_dialog("Add Entry")
         if base is None: return
+        
+        # Validation
+        if not base.get("name", "").strip():
+            messagebox.showerror("Validation Error", "Name is required.")
+            return
+        if not base.get("password", "").strip():
+            messagebox.showerror("Validation Error", "Password is required.")
+            return
+        if len(base.get("password", "")) < 3:
+            messagebox.showwarning("Validation Warning", "Password should be at least 3 characters long.")
+        
         self.store.add_entry(base, custom)
         self._refresh_field_labels()
         self._load_entries()
+        messagebox.showinfo("Success", "Entry saved ✨")
 
     def _edit_entry_dialog(self):
         sel = self.tree.selection()
@@ -172,9 +240,21 @@ class PixieVaultApp:
         if not entry: return
         base, custom = self._entry_form_dialog("Edit Entry", entry)
         if base is None: return
+        
+        # Validation
+        if not base.get("name", "").strip():
+            messagebox.showerror("Validation Error", "Name is required.")
+            return
+        if not base.get("password", "").strip():
+            messagebox.showerror("Validation Error", "Password is required.")
+            return
+        if len(base.get("password", "")) < 3:
+            messagebox.showwarning("Validation Warning", "Password should be at least 3 characters long.")
+        
         self.store.update_entry(entry_id, base, custom)
         self._refresh_field_labels()
         self._load_entries()
+        messagebox.showinfo("Success", "Entry updated ✨")
 
     def _entry_form_dialog(self, title: str, entry: Dict[str,Any] | None = None):
         # Simple synchronous dialog with dynamic custom fields
