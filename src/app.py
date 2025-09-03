@@ -186,17 +186,35 @@ class PixieVaultApp:
         ttk.Separator(dlg).grid(row=row, column=0, columnspan=2, sticky="ew", pady=6); row += 1
         ttk.Label(dlg, text="Custom fields").grid(row=row, column=0, columnspan=2, pady=4); row += 1
 
-        custom_rows: list[tuple[tk.Entry, tk.Entry]] = []
+        custom_rows: list[tuple[tk.Entry, tk.Entry, ttk.Button]] = []
 
         def add_custom_row(k_init="", v_init=""):
             nonlocal row
             key_ent = ttk.Entry(dlg, width=20)
             val_ent = ttk.Entry(dlg, width=30)
+            
+            def remove_this_row():
+                nonlocal custom_rows
+                # Find and remove this row from custom_rows
+                for i, (k_e, v_e, btn) in enumerate(custom_rows):
+                    if k_e == key_ent:
+                        # Destroy widgets
+                        k_e.destroy()
+                        v_e.destroy()
+                        btn.destroy()
+                        # Remove from list
+                        custom_rows.pop(i)
+                        break
+            
+            remove_btn = ttk.Button(dlg, text="×", width=3, command=remove_this_row)
+            
             key_ent.grid(row=row, column=0, padx=6, pady=2, sticky="e")
             val_ent.grid(row=row, column=1, padx=6, pady=2, sticky="w")
+            remove_btn.grid(row=row, column=2, padx=2, pady=2)
+            
             key_ent.insert(0, k_init)
             val_ent.insert(0, v_init)
-            custom_rows.append((key_ent, val_ent))
+            custom_rows.append((key_ent, val_ent, remove_btn))
             row += 1
 
         # preload existing custom
@@ -204,7 +222,7 @@ class PixieVaultApp:
             add_custom_row(k, v)
 
         # add-row button
-        ttk.Button(dlg, text="Add field", command=lambda: add_custom_row()).grid(row=row, column=0, columnspan=2, pady=6); row += 1
+        ttk.Button(dlg, text="Add field", command=lambda: add_custom_row()).grid(row=row, column=0, columnspan=3, pady=6); row += 1
 
         # Save/Cancel
         btns = ttk.Frame(dlg); btns.grid(row=row, column=0, columnspan=2, pady=8)
@@ -221,7 +239,7 @@ class PixieVaultApp:
 
         base = {k: w.get().strip() for k, w in widgets.items()}
         custom: Dict[str,Any] = {}
-        for k_ent, v_ent in custom_rows:
+        for k_ent, v_ent, _ in custom_rows:
             k = k_ent.get().strip()
             v = v_ent.get().strip()
             if k:
