@@ -5,9 +5,10 @@ A touch-friendly password manager designed for Raspberry Pi with a beautiful boo
 ## Features
 
 - **Touch-Friendly UI**: Large buttons and inputs optimized for touchscreen interaction
-- **Custom Fields**: Add any custom fields to entries (Category, Environment, etc.)
+- **Dynamic Custom Fields**: Add any custom fields with individual remove buttons (× to delete)
 - **Smart Search**: Search across all fields with dynamic field filtering
 - **Multiple Sort Modes**: A→Z, Recently Added, Recently Updated, Most Used
+- **Intuitive Field Order**: User data first (Name, Protocol, Website, Username, Password, Notes), metadata last (ID, Created, Last Accessed)
 - **Boot Animation**: Plays your Sora Pixie MP4 full-screen at startup
 - **Air-Gap Friendly**: No network dependencies, local JSON storage
 - **Optional Encryption**: Toggle-able AES/Fernet encryption for data at rest
@@ -105,7 +106,13 @@ sudo reboot
 1. Click **Add Entry**
 2. Fill in the base fields (Name, Protocol, Website, Username, Password, Notes)
 3. Click **Add field** to create custom fields like Category, Environment, etc.
-4. Click **Save**
+4. Use the **×** button to remove unwanted custom field rows
+5. Click **Save**
+
+### Field Display Order
+**Detail Panel**: Name → Protocol → Website → Username → Password → Notes → Custom Fields → ID → Created → Last Accessed
+
+**TreeView Columns**: Name, Protocol, Website, Username, ID, Created, Last Access
 
 ### Searching
 - Use the search bar to find entries across all fields
@@ -114,7 +121,7 @@ sudo reboot
 
 ### Managing Entries
 - Click an entry to view full details in the right panel
-- Use **Edit Entry** to modify selected entries
+- Use **Edit Entry** to modify selected entries (with × buttons for custom fields)
 - **Delete** removes the selected entry (with confirmation)
 - **Refresh** reloads the entry list
 
