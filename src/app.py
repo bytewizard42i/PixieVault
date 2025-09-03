@@ -92,7 +92,7 @@ class PixieVaultApp:
         
         self.status_right = ttk.Label(status_bar, text="")
         self.status_right.pack(side="right")
-        
+
         # Bottom: actions
         bottom = ttk.Frame(self.root)
         bottom.pack(side="bottom", fill="x", padx=10, pady=8)
@@ -119,13 +119,20 @@ class PixieVaultApp:
         entries = sort_entries(entries, sort_mode)
 
         self.tree.delete(*self.tree.get_children())
-        if not entries:
+        
+        if not entries and term:
             # Empty state message
-            self.detail_text.delete("1.0", "end")
-            self.detail_text.insert("end", "No matches found ✨ — try 'Any' field or clear filters.")
-            self._update_status_bar(0, term, field)
-            return
-            
+            self.status_left.config(text="No matches found ✨ — try 'Any' field or clear filters")
+        else:
+            # Update status bar
+            count = len(entries)
+            filter_text = f" (filtered)" if term else ""
+            self.status_left.config(text=f"{count} entries{filter_text}")
+        
+        # Update time
+        current_time = datetime.datetime.now().strftime("%H:%M")
+        self.status_right.config(text=current_time)
+        
         for e in entries:
             created_short = datetime.datetime.fromtimestamp(e.get('created_at', 0)).strftime('%m/%d/%y') if e.get('created_at') else 'N/A'
             last_access_short = datetime.datetime.fromtimestamp(e.get('last_access_at', 0)).strftime('%m/%d/%y') if e.get('last_access_at') else 'Never'
@@ -140,20 +147,6 @@ class PixieVaultApp:
                 last_access_short
             ))
         self.detail_text.delete("1.0", "end")
-        self._update_status_bar(len(entries), term, field)
-    
-    def _update_status_bar(self, count: int, search_term: str = "", field_filter: str = "Any"):
-        # Left: entry count and filter status
-        status_text = f"{count} entries"
-        if search_term:
-            status_text += f" • searching '{search_term}'"
-        if field_filter != "Any":
-            status_text += f" in {field_filter}"
-        self.status_left.config(text=status_text)
-        
-        # Right: current time
-        current_time = datetime.datetime.now().strftime("%H:%M")
-        self.status_right.config(text=current_time)
 
     def _on_select(self, _evt=None):
         sel = self.tree.selection()
