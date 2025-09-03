@@ -1,0 +1,13 @@
+{
+  "encryption_enabled": false,
+  "kdf": "sha256",
+  "ui": {
+    "theme": "dark",
+    "font_scale": 1.2
+  },
+  "boot": {
+    "play_pixie_video": true,
+    "video_path": "assets/pixie_boot.mp4",
+    "skip_if_debug": false
+  }
+}

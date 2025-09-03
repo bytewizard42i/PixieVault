@@ -1,0 +1,13 @@
+[Unit]
+Description=Pixie Boot Animation
+After=multi-user.target
+Before=pixie-app.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mpv --quiet --no-audio-display --fullscreen --loop-file=no --really-quiet /home/pi/pixie-vault/assets/pixie_boot.mp4
+User=pi
+WorkingDirectory=/home/pi/pixie-vault
+
+[Install]
+WantedBy=graphical.target
