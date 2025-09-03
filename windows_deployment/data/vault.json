@@ -1,0 +1,32 @@
+{
+  "entries": [
+    {
+      "id": "92e0dda0-d7b7-4f32-8f37-1f8016604825",
+      "name": "test john",
+      "protocol": "test protocol",
+      "website": "test websiteq",
+      "username": "jimmy5i",
+      "password": "1234",
+      "notes": "this is a note",
+      "custom": {},
+      "created_at": 1756885851,
+      "updated_at": 1756885851,
+      "access_count": 8,
+      "last_access_at": 1756888036
+    },
+    {
+      "id": "c6b3f416-51f4-452c-ae73-b3f0997686be",
+      "name": "dsfg",
+      "protocol": "sfdhdj",
+      "website": "sdjg",
+      "username": "sdgj",
+      "password": "1234",
+      "notes": "noteadadsfgafdg",
+      "custom": {},
+      "created_at": 1756886470,
+      "updated_at": 1756886470,
+      "access_count": 6,
+      "last_access_at": 1756888041
+    }
+  ]
+}
