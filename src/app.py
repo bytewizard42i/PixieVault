@@ -4,9 +4,15 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Dict, Any, List, Tuple
 import os
-from PIL import Image, ImageTk
 from storage import Storage
 from search import matches, all_field_labels, sort_entries
+
+# Try to import PIL, but continue without it if not available
+try:
+    from PIL import Image, ImageTk
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 class PixieVaultApp:
     def __init__(self, root: tk.Tk):
@@ -418,20 +424,25 @@ class PixieVaultApp:
             img_frame.pack(side="bottom", fill="x", pady=(10, 0))
             img_frame.pack_propagate(False)
             
-            # Load and resize image
-            img_path = os.path.join(os.path.dirname(__file__), "..", "media", "pixie-alices_pet.png")
-            if os.path.exists(img_path):
-                image = Image.open(img_path)
-                # Resize to fit in bottom area (max height 160px)
-                image.thumbnail((500, 160), Image.Resampling.LANCZOS)
-                self.pixie_photo = ImageTk.PhotoImage(image)
-                
-                # Display image
-                img_label = ttk.Label(img_frame, image=self.pixie_photo)
-                img_label.pack(expand=True)
+            if PIL_AVAILABLE:
+                # Load and resize image
+                img_path = os.path.join(os.path.dirname(__file__), "..", "media", "pixie-alices_pet.png")
+                if os.path.exists(img_path):
+                    image = Image.open(img_path)
+                    # Resize to fit in bottom area (max height 160px)
+                    image.thumbnail((500, 160), Image.Resampling.LANCZOS)
+                    self.pixie_photo = ImageTk.PhotoImage(image)
+                    
+                    # Display image
+                    img_label = ttk.Label(img_frame, image=self.pixie_photo)
+                    img_label.pack(expand=True)
+                else:
+                    # Fallback if image not found
+                    ttk.Label(img_frame, text="🧚‍♀️ Pixie image not found", 
+                             font=("DejaVu Sans", 10)).pack(expand=True)
             else:
-                # Fallback if image not found
-                ttk.Label(img_frame, text="🧚‍♀️ Pixie image not found", 
+                # Fallback when PIL is not available
+                ttk.Label(img_frame, text="🧚‍♀️ PixieVault - Image libraries not available", 
                          font=("DejaVu Sans", 10)).pack(expand=True)
                 
         except Exception as e:
