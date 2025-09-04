@@ -30,6 +30,12 @@ class PixieVaultApp:
         
         # Cleanup video on window close
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        
+        # Keyboard shortcuts
+        self.root.bind("<Control-n>", lambda e: self._add_entry_dialog())
+        self.root.bind("<Control-e>", lambda e: self._edit_entry_dialog())
+        self.root.bind("<Delete>", lambda e: self._delete_selected())
+        self.root.bind("<F5>", lambda e: self._load_entries())
     
     def _setup_theme(self):
         style = ttk.Style(self.root)
@@ -39,22 +45,31 @@ class PixieVaultApp:
 
     # --- UI ---
     def _build_ui(self):
-        # Top: Search bar + field filter + sort
+        # Top: Action buttons + Search bar + field filter + sort
         top = ttk.Frame(self.root)
         top.pack(side="top", fill="x", padx=10, pady=6)
 
+        # Action buttons on the left
+        ttk.Button(top, text="Add Entry", command=self._add_entry_dialog).pack(side="left", padx=2)
+        ttk.Button(top, text="Edit Entry", command=self._edit_entry_dialog).pack(side="left", padx=2)
+        ttk.Button(top, text="Delete", command=self._delete_selected).pack(side="left", padx=2)
+        ttk.Button(top, text="Refresh", command=self._load_entries).pack(side="left", padx=2)
+        
+        # Separator
+        ttk.Separator(top, orient="vertical").pack(side="left", fill="y", padx=8)
+
         ttk.Label(top, text="Search:").pack(side="left")
         self.search_var = tk.StringVar()
-        self.search_entry = ttk.Entry(top, textvariable=self.search_var, width=40)
+        self.search_entry = ttk.Entry(top, textvariable=self.search_var, width=30)
         self.search_entry.pack(side="left", padx=6)
         self.search_entry.bind("<Return>", lambda e: self._load_entries())
 
         self.field_var = tk.StringVar(value="Any")
-        self.field_combo = ttk.Combobox(top, textvariable=self.field_var, state="readonly", width=24)
+        self.field_combo = ttk.Combobox(top, textvariable=self.field_var, state="readonly", width=20)
         self.field_combo.pack(side="left", padx=6)
 
         self.sort_var = tk.StringVar(value="A→Z")
-        self.sort_combo = ttk.Combobox(top, textvariable=self.sort_var, state="readonly", width=20,
+        self.sort_combo = ttk.Combobox(top, textvariable=self.sort_var, state="readonly", width=16,
                                        values=["A→Z","Recently Added","Recently Updated","Most Used"])
         self.sort_combo.pack(side="left", padx=6)
 
@@ -100,17 +115,13 @@ class PixieVaultApp:
         self.status_left = ttk.Label(status_bar, text="0 entries")
         self.status_left.pack(side="left")
         
+        # Keyboard shortcuts help
+        shortcuts_text = "Shortcuts: Ctrl+N=Add, Ctrl+E=Edit, Del=Delete, F5=Refresh"
+        self.status_center = ttk.Label(status_bar, text=shortcuts_text, font=("DejaVu Sans", 8))
+        self.status_center.pack(side="left", padx=20)
+        
         self.status_right = ttk.Label(status_bar, text="")
         self.status_right.pack(side="right")
-
-        # Bottom: actions (pack last so they appear at very bottom)
-        bottom = ttk.Frame(self.root)
-        bottom.pack(side="bottom", fill="x", padx=10, pady=8)
-
-        ttk.Button(bottom, text="Add Entry", command=self._add_entry_dialog).pack(side="left", padx=5)
-        ttk.Button(bottom, text="Edit Entry", command=self._edit_entry_dialog).pack(side="left", padx=5)
-        ttk.Button(bottom, text="Delete", command=self._delete_selected).pack(side="left", padx=5)
-        ttk.Button(bottom, text="Refresh", command=self._load_entries).pack(side="left", padx=5)
 
     def _refresh_field_labels(self):
         labels = ["Any"] + all_field_labels(self.store.all_entries())
